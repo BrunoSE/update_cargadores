@@ -50,7 +50,7 @@ def main():
     mantener_log()
     logger.info("Primer intento")
     df = query_0('')
-    pd.to_excel('df.xlsx', index=True)
+    df.to_excel('df.xlsx', index=True)
 
 
 if __name__ == '__main__':
