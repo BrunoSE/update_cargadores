@@ -26,7 +26,7 @@ def mantener_log():
     logger.addHandler(print_handler)
 
 
-def query_0(query_string):
+def query_reservas(fecha_str):
     # entrega tabla de tipo de dia segun fecha, a partir de fecha_str en formato %Y-m-d
     db0 = MySQLdb.connect(host="192.168.11.150",
                           user="brunom",
@@ -35,7 +35,13 @@ def query_0(query_string):
 
     cur0 = db0.cursor()
 
-    query0 = f"SELECT * FROM pistolas;"
+    query0 = ( f"""
+                SELECT pistola_id AS pistola_id_stp2, patente, fecha_hora_reserva, 
+                      usuario_id, usuario_inicio_id, usuario_termino_id 
+                FROM stp_estacionamiento.reservas 
+                WHERE DATE(fecha_hora_reserva) > '{fecha_str}';
+                """ )
+
     cur0.execute(query0)
     df_ = pd.DataFrame([row for row in cur0.fetchall() if row[0] is not None],
                        columns=[i[0] for i in cur0.description])
@@ -49,7 +55,7 @@ def query_0(query_string):
 def main():
     mantener_log()
     logger.info("Primer intento")
-    df = query_0('')
+    df = query_reservas('2021-09-26')
     df.to_excel('df.xlsx', index=True)
 
 
