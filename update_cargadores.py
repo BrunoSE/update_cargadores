@@ -119,11 +119,27 @@ def main():
     fecha_hoy = fecha_hoy.strftime('%Y-%m-%d')
     fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
 
+    do_query = True
+    query_save = True
+    query_load = False
+
     logger.info(f"Primer intento con fecha_ayer={fecha_ayer} y fecha_hoy={fecha_hoy}")
-    df_res = query_reservas_diaria(fecha_ayer, fecha_hoy)
-    df = query_data_diaria(fecha_ayer, fecha_hoy)
-    df_res.to_parquet('df_res.parquet', compression='gzip')
-    df.to_parquet('df.parquet', compression='gzip')
+
+    if do_query:
+        df_res = query_reservas_diaria(fecha_ayer, fecha_hoy)
+        logger.info(f"Query reservas lista")
+        df = query_data_diaria(fecha_ayer, fecha_hoy)
+        logger.info(f"Query data cargadores lista")
+    if query_save:
+        df_res.to_parquet('df_res.parquet', compression='gzip')
+        logger.info(f"Guardado parquet reservas")
+        df.to_parquet('df.parquet', compression='gzip')
+        logger.info(f"Guardado parquet data")
+    if query_load:
+        logger.info(f"Leyendo parquet reservas")
+        df_res = pd.read_parquet('df_res.parquet')
+        logger.info(f"Leyendo parquet data")
+        df = pd.read_parquet('df.parquet')
 
 
 if __name__ == '__main__':
