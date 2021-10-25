@@ -77,7 +77,7 @@ def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
                 FROM stp_estacionamiento.reservas 
                 WHERE 
                     fecha_hora_reserva > '{fecha_str_ayer} 07:30:00' AND
-                    fecha_hora_evento < '{fecha_str_hoy} 07:30:01';
+                    fecha_hora_reserva < '{fecha_str_hoy} 07:30:01';
                 """ )
 
     cur0.execute(query0)
