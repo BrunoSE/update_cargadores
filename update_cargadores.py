@@ -92,15 +92,13 @@ def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
 
 def main():
     mantener_log()
-    
-
     fecha_hoy = datetime.today()
     fecha_ayer = fecha_hoy - timedelta(days=1)
     fecha_hoy = fecha_hoy.strftime('%Y-%m-%d')
     fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
     logger.info(f"Primer intento con fecha_ayer={fecha_ayer} y fecha_hoy={fecha_hoy}")
     df_res = query_reservas_diaria(fecha_ayer, fecha_hoy)
-
+    df_res.to_excel('df.xlsx', index=False)
 
 
 if __name__ == '__main__':
