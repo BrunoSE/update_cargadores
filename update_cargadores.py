@@ -246,6 +246,7 @@ def procesar_data(df, df_r):
         logger.info(f"Datos promedio en cada secuencia asignada valida: {n_val_dia}")
     # dejar secuencias con id unico, asume no mas de 9999 secuencias por dia
     df_f['id_secuencia'] = df_f['id_secuencia'] + 10000 * (df_f['tiempo_inicial_carga'].dt.strftime('%y%m%d').astype(int))
+    df_f.set_index('id', drop=True, append=False, inplace=True)
     return df_f
 
 
@@ -268,7 +269,7 @@ def cargar_SQL(df_sql):
                         .format(host=hostname, db=dbname, user=uname, pw=pwd))
 
     # Convert dataframe to sql table                                   
-    df_sql.to_sql(nombre_tabla_sql, engine, index=True, index_label='id', if_exists='append')
+    df_sql.to_sql(nombre_tabla_sql, engine, index=True, if_exists='append')
     logger.info(f"Data agregada exitosamente a tabla SQL: {nombre_tabla_sql}")
 
 
