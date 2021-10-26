@@ -254,7 +254,7 @@ def cargar_SQL(df_sql):
         logger.warning(f"Data procesada vacia, no se carga en SQL")
         return None
 
-    nombre_tabla_sql = 'prueba_manzana3'
+    nombre_tabla_sql = 'prueba_manzana4'
 
     logger.info(f"Insertando data en tabla SQL: {nombre_tabla_sql}")
     # Credentials to database connection
@@ -289,7 +289,7 @@ def main():
         fecha_hoy = '2021-09-22'
         fecha_ayer = '2021-09-21'
         do_query = True
-        query_save = False
+        query_save = True
         query_load = False
 
         logger.info(f"Modo manual con fecha_ayer={fecha_hoy}")
