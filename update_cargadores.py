@@ -31,7 +31,7 @@ def mantener_log():
 
 
 def query_data_diaria(fecha_str_ayer, fecha_str_hoy, tabla_filtrada=False):
-    # Query entrega 24 horas de data telemetria de cargadores a partir de las 7:30am de un dia
+    # Query entrega 24 horas de data telemetria de cargadores a partir de las 7:00pm de un dia
     tabla = "cargadores_historico"
     if tabla_filtrada:
         tabla = "cargadores_historico_filtrado"
@@ -58,7 +58,7 @@ def query_data_diaria(fecha_str_ayer, fecha_str_hoy, tabla_filtrada=False):
                         voltage <> '0' AND
                         current_import <> '0' AND
                         soc <= '99' AND
-                        fecha_hora_evento BETWEEN '{fecha_str_ayer} 07:30:01' AND '{fecha_str_hoy} 07:30:00'
+                        fecha_hora_evento BETWEEN '{fecha_str_ayer} 19:00:01' AND '{fecha_str_hoy} 19:00:00'
                     GROUP BY
                         marquesina_id, marquesina_nombre, cargador_id, cargador_nombre,
                         pistola_id, pistola_nro, power_active_import, energy_active_import_register,
@@ -84,7 +84,6 @@ def query_data_diaria(fecha_str_ayer, fecha_str_hoy, tabla_filtrada=False):
     db1.close()
 
     return df1_
-
 
 
 def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
@@ -255,7 +254,7 @@ def cargar_SQL(df_sql):
         logger.warning(f"Data procesada vacia, no se carga en SQL")
         return None
 
-    nombre_tabla_sql = 'prueba_manzana2'
+    nombre_tabla_sql = 'prueba_manzana3'
 
     logger.info(f"Insertando data en tabla SQL: {nombre_tabla_sql}")
     # Credentials to database connection
@@ -287,8 +286,8 @@ def main():
     if fechas_manual:
         # Caso proceso manual: definir variables debug
         directorio = 'C:/Users/bruno/Desktop/Trabajo 2021/update_cargadores'
-        fecha_hoy = '2021-09-29'
-        fecha_ayer = '2021-09-28'
+        fecha_hoy = '2021-09-22'
+        fecha_ayer = '2021-09-21'
         do_query = True
         query_save = False
         query_load = False
@@ -320,10 +319,10 @@ def main():
             logger.info(f"Modo manual termino exitosamente")
 
     elif fechas_historicas:
-        # Calculo para fechas entre 16 oct 2020 y 26 sept 2021
+        # Calculo para fechas entre 17 oct 2020 y 26 sept 2021
         fecha_ayer = '2020-10-16'
         fecha_hoy = '2020-10-17'
-        fecha_fin = '2021-09-27'
+        fecha_fin = '2021-09-25'
         
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"logs/Hist_{fecha_ayer[:-3].replace('-', '_')}_{fecha_fin[:-3].replace('-', '_')}.log")
@@ -375,6 +374,7 @@ def main():
             cargar_SQL(df_dia)
 
         logger.info(f"Modo automatico termino exitosamente")
+
 
 if __name__ == '__main__':
     main()
