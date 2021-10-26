@@ -238,7 +238,7 @@ def main():
     fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
 
     # -- Variables debug
-    directorio = 'C:/Users/bruno/Desktop/Trabajo 2021/update_cargadores'
+    directorio = 'C:/Users/bstefoni/Desktop/Trabajo 2021/update_cargadores'
     fecha_hoy = '2021-09-28'
     fecha_ayer = '2021-09-27'
     do_query = False
