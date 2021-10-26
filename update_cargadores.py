@@ -312,7 +312,7 @@ def main():
         logger.info(f"Lista data manual, procesando:")
         if df_dia.empty:
             logger.warning(f"Data vacia, proceso terminado anticipadamente")
-        else:
+        elif False:
             df_dia = procesar_data(df_dia, df_reserva)
             cargar_SQL(df_dia)
             df_dia.to_parquet('df.parquet', compression='gzip')
