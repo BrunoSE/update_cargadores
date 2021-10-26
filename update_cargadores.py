@@ -102,7 +102,7 @@ def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
                 FROM 
                     stp_estacionamiento.reservas 
                 WHERE 
-                    fecha_hora_reserva BETWEEN '{fecha_str_ayer} 07:30:01' AND '{fecha_str_hoy} 07:30:00';
+                    fecha_hora_reserva BETWEEN '{fecha_str_ayer} 19:00:01' AND '{fecha_str_hoy} 19:00:00';
                 """
              )
 
@@ -289,10 +289,10 @@ def main():
         fecha_hoy = '2021-09-22'
         fecha_ayer = '2021-09-21'
         do_query = True
-        query_save = True
+        query_save = False
         query_load = False
 
-        logger.info(f"Modo manual con fecha_ayer={fecha_hoy}")
+        logger.info(f"Modo manual con fecha {fecha_hoy}")
 
         if do_query:
             df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
@@ -312,17 +312,17 @@ def main():
         logger.info(f"Lista data manual, procesando:")
         if df_dia.empty:
             logger.warning(f"Data vacia, proceso terminado anticipadamente")
-        elif False:
+        else:
             df_dia = procesar_data(df_dia, df_reserva)
-            cargar_SQL(df_dia)
-            df_dia.to_parquet('df.parquet', compression='gzip')
+            # cargar_SQL(df_dia)
+            # df_dia.to_parquet('df.parquet', compression='gzip')
             logger.info(f"Modo manual termino exitosamente")
 
     elif fechas_historicas:
         # Calculo para fechas entre 17 oct 2020 y 26 sept 2021
-        fecha_ayer = '2020-10-16'
-        fecha_hoy = '2020-10-17'
-        fecha_fin = '2021-09-25'
+        fecha_ayer = '2020-10-15'
+        fecha_hoy = '2020-10-16'
+        fecha_fin = '2021-09-26'
         
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"logs/Hist_{fecha_ayer[:-3].replace('-', '_')}_{fecha_fin[:-3].replace('-', '_')}.log")
@@ -333,11 +333,11 @@ def main():
         logger.info(f"Empezando modo historico entre {fecha_hoy} y {fecha_fin}")
         # loop por seguridad asumimos menos de un anno de data historica para evitar looplock
         for i in range(365):
-            if fecha_ayer == fecha_fin:
+            if fecha_hoy == fecha_fin:
                 logger.info(f"Calculo finalizado")
                 break
             
-            logger.info(f"Procesando fecha historica: {fecha_ayer}")
+            logger.info(f"Procesando fecha historica: {fecha_hoy}")
             df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
             df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=False)
             logger.info(f"Query realizada, procesando..")
@@ -361,7 +361,7 @@ def main():
         logger.addHandler(file_handler)
 
         # Modo automatico:
-        logger.info(f"Modo automatico con fecha_ayer={fecha_hoy}")
+        logger.info(f"Modo automatico con fecha {fecha_hoy}")
 
         df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
         logger.info(f"Query reservas lista")
