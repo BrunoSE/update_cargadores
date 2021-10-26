@@ -93,7 +93,7 @@ def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
 
     query0 = ( f"""
                 SELECT
-                    pistola_id AS pistola_id_stp2, patente, fecha_hora_reserva, 
+                    id as reserva_id, pistola_id AS pistola_id_stp2, patente, fecha_hora_reserva, 
                     usuario_id, usuario_inicio_id, usuario_termino_id 
                 FROM 
                     stp_estacionamiento.reservas 
@@ -119,6 +119,10 @@ def main():
     fecha_hoy = fecha_hoy.strftime('%Y-%m-%d')
     fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
 
+    # -- Variables debug
+    directorio = 'C:/Users/bruno/Desktop/Trabajo 2021/update_cargadores'
+    fecha_hoy = '2021-09-28'
+    fecha_ayer = '2021-09-27'
     do_query = True
     query_save = True
     query_load = False
@@ -137,10 +141,11 @@ def main():
         logger.info(f"Guardado parquet data")
     if query_load:
         logger.info(f"Leyendo parquet reservas")
-        df_res = pd.read_parquet('df_res.parquet')
+        df_res = pd.read_parquet(f'{directorio}/df_res.parquet')
         logger.info(f"Leyendo parquet data")
-        df = pd.read_parquet('df.parquet')
-
+        df = pd.read_parquet(f'{directorio}/df.parquet')
+    logger.info(f"Lista data")
+    
 
 if __name__ == '__main__':
     main()
