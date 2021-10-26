@@ -116,7 +116,7 @@ def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
     return df0_
 
 
-def procesar_data(df, df_r):
+def procesar_data(df, df_r, fecha_hoy_):
     # asegurar id sea it, ordenar data antes de hacer analisis de secuencias
     if not df_r.empty:
         df_r['reserva_id'] = df_r['reserva_id'].astype(int)
@@ -244,7 +244,7 @@ def procesar_data(df, df_r):
         n_val_dia = round(len(df_f.loc[~df_f['reserva_id'].isna()].index) / n_val_dia, 1)
         logger.info(f"Datos promedio en cada secuencia asignada valida: {n_val_dia}")
     # dejar secuencias con id unico, asume no mas de 9999 secuencias por dia
-    df_f['id_secuencia'] = df_f['id_secuencia'] + 10000 * (df_f['tiempo_inicial_carga'].dt.strftime('%y%m%d').astype(int))
+    df_f['id_secuencia'] = df_f['id_secuencia'] + 10000 * int(fecha_hoy_[2:].replace('-', ''))
     df_f.set_index('id', drop=True, append=False, inplace=True)
     return df_f
 
@@ -313,7 +313,7 @@ def main():
         if df_dia.empty:
             logger.warning(f"Data vacia, proceso terminado anticipadamente")
         else:
-            df_dia = procesar_data(df_dia, df_reserva)
+            df_dia = procesar_data(df_dia, df_reserva, fecha_hoy)
             # cargar_SQL(df_dia)
             # df_dia.to_parquet('df.parquet', compression='gzip')
             logger.info(f"Modo manual termino exitosamente")
@@ -344,7 +344,7 @@ def main():
             if df_dia.empty:
                 logger.warning(f"Data vacia, se procede a siguiente fecha")
             else:
-                df_dia = procesar_data(df_dia, df_reserva)
+                df_dia = procesar_data(df_dia, df_reserva, fecha_hoy)
                 cargar_SQL(df_dia)
 
             # redefinir fechas para siguiente iteracion
@@ -370,7 +370,7 @@ def main():
         if df_dia.empty:
             logger.warning(f"Data vacia, proceso finalizado anticipadamente")
         else:
-            df_dia = procesar_data(df_dia, df_reserva)
+            df_dia = procesar_data(df_dia, df_reserva, fecha_hoy)
             cargar_SQL(df_dia)
 
         logger.info(f"Modo automatico termino exitosamente")
