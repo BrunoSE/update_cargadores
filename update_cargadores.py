@@ -156,6 +156,7 @@ def procesar_data(df, df_r):
     # rehacer proceso para criterios menos estrictos
     for i in range(5, 61, 5):
         if i != 5:
+            # si no es la primera iteracion:
             df_f.append(dfx0)
             dfx = dfx1.copy()
             df_res = df_res1.copy()
@@ -202,9 +203,13 @@ def procesar_data(df, df_r):
         dfx1 = dfx1.drop(columns=drop_cols_)
         df_res0 = df_res0.drop(columns='reserva_asignada')
         df_res1 = df_res1.drop(columns='reserva_asignada')
+        if dfx1.empty:
+            logger.warning("Toda la data fue asignada correctamente!")
+            break
 
     # que ultimo df se agregue al resultado final, borrando asignacion erronea de ultima iteracion
-    dfx.loc[~dfx['secuencia_asignada'], drop_cols_] = pd.NA
+    if not dfx1.empty:
+        dfx.loc[~dfx['secuencia_asignada'], drop_cols_] = pd.NA
     dfx = dfx.drop(columns='secuencia_asignada')
     df_f.append(dfx)
 
@@ -258,7 +263,12 @@ def main():
         logger.info(f"Leyendo parquet data")
         df_dia = pd.read_parquet(f'{directorio}/df.parquet')
     logger.info(f"Lista data")
-    df_dia = procesar_data(df_dia, df_reserva)
+
+    if df_dia.empty:
+        logger.warning(f"Data vacia")
+    else:
+        df_dia = procesar_data(df_dia, df_reserva)
+        df_dia.to_parquet('df_27sept.parquet', compression='gzip')
 
 
 if __name__ == '__main__':
