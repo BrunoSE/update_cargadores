@@ -254,7 +254,7 @@ def cargar_SQL(df_sql):
         logger.warning(f"Data procesada vacia, no se carga en SQL")
         return None
 
-    nombre_tabla_sql = 'prueba_manzana4'
+    nombre_tabla_sql = 'cargadores_procesado'
 
     logger.info(f"Insertando data en tabla SQL: {nombre_tabla_sql}")
     # Credentials to database connection
@@ -275,8 +275,8 @@ def cargar_SQL(df_sql):
 def main():
     mantener_log()
 
-    fechas_manual = True
-    fechas_historicas = False
+    fechas_manual = False
+    fechas_historicas = True
 
     fecha_hoy = datetime.today()
     fecha_ayer = fecha_hoy - timedelta(days=1)
@@ -339,7 +339,7 @@ def main():
             
             logger.info(f"Procesando fecha historica: {fecha_hoy}")
             df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
-            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=False)
+            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=True)
             logger.info(f"Query realizada, procesando..")
             if df_dia.empty:
                 logger.warning(f"Data vacia, se procede a siguiente fecha")
