@@ -275,8 +275,8 @@ def cargar_SQL(df_sql):
 def main():
     mantener_log()
 
-    fechas_manual = False
-    fechas_historicas = True
+    fechas_manual = True
+    fechas_historicas = False
 
     fecha_hoy = datetime.today()
     fecha_ayer = fecha_hoy - timedelta(days=1)
@@ -286,10 +286,10 @@ def main():
     if fechas_manual:
         # Caso proceso manual: definir variables debug
         directorio = 'C:/Users/bruno/Desktop/Trabajo 2021/update_cargadores'
-        fecha_hoy = '2021-09-22'
-        fecha_ayer = '2021-09-21'
+        fecha_hoy = '2021-04-27'
+        fecha_ayer = '2021-04-26'
         do_query = True
-        query_save = False
+        query_save = True
         query_load = False
 
         logger.info(f"Modo manual con fecha {fecha_hoy}")
@@ -330,7 +330,7 @@ def main():
         file_handler.setFormatter(file_format)
         logger.addHandler(file_handler)
 
-        logger.info(f"Empezando modo historico entre {fecha_hoy} y {fecha_fin}")
+        logger.info(f"Empezando modo historico entre {fecha_hoy} y {fecha_fin}")    
         # loop por seguridad asumimos menos de un anno de data historica para evitar looplock
         for i in range(365):
             if fecha_hoy == fecha_fin:
