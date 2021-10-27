@@ -191,7 +191,7 @@ def procesar_data(df, df_r, fecha_hoy_):
             # total secuencias con carga asignada valida pero duplicada:
             df_reservas_ok = dfx.loc[((~dfx['reserva_id'].isna()) & (dfx['cruce_ok']))].groupby(by='id_secuencia').min()
             n_res_dup = len(df_reservas_ok.index) - len(df_reservas_ok.groupby(['reserva_id']).min().index)
-            logger.info(f"Merge_asof({i:02d} minutos). Secuencias con reserva valida asignada: {s_asign_validas:02d} (Duplicadas {n_res_dup:02d})")
+            logger.debug(f"Merge_asof({i:02d} minutos). Secuencias con reserva valida asignada: {s_asign_validas:02d} (Duplicadas {n_res_dup:02d})")
             # en caso de asignacion duplicada quedarse con el mas cercano a tiempo de reserva
             df_reservas_ok['dif_merge'] = abs((df_reservas_ok['fecha_hora_reserva'] - df_reservas_ok['tiempo_inicial_carga']) / pd.Timedelta(minutes=1))
             df_reservas_ok.sort_values(by=['pistola_id', 'fecha_hora_evento', 'soc', 'dif_merge'], inplace=True)
@@ -229,7 +229,7 @@ def procesar_data(df, df_r, fecha_hoy_):
         df_f['cruce_ok'] = pd.NA
 
     df_f = df_f.sort_values(by=['pistola_id', 'fecha_hora_evento', 'soc'])
-    logger.info(f"Reservas en el dia: {len(df_res.index)}")
+    logger.info(f"Reservas en el dia: {len(df_r.index)}")
     logger.info(f"Secuencias en el dia: {len(df['id_secuencia'].unique())}")
     if len(df_f['id_secuencia'].unique()) != len(df['id_secuencia'].unique()):
         logger.warning(f"Secuencias en el dia en data final (check): {len(df_f['id_secuencia'].unique())}")
@@ -275,8 +275,8 @@ def cargar_SQL(df_sql):
 def main():
     mantener_log()
 
-    fechas_manual = True
-    fechas_historicas = False
+    fechas_manual = False
+    fechas_historicas = True
 
     fecha_hoy = datetime.today()
     fecha_ayer = fecha_hoy - timedelta(days=1)
@@ -320,8 +320,8 @@ def main():
 
     elif fechas_historicas:
         # Calculo para fechas entre 20 abril 2021 y 26 sept 2021
-        fecha_ayer = '2021-04-19'
-        fecha_hoy = '2021-04-20'
+        fecha_ayer = '2021-05-01'
+        fecha_hoy = '2021-05-02'
         fecha_fin = '2021-09-26'
 
         # Guardar log en archivo
