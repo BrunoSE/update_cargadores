@@ -97,11 +97,11 @@ def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
 
     query0 = ( f"""
                 SELECT
-                    id as reserva_id, pistola_id AS pistola_id_stp2, patente, fecha_hora_reserva, 
-                    usuario_id, usuario_inicio_id, usuario_termino_id 
-                FROM 
-                    stp_estacionamiento.reservas 
-                WHERE 
+                    id as reserva_id, pistola_id AS pistola_id_stp2, patente, fecha_hora_reserva,
+                    usuario_id, usuario_inicio_id, usuario_termino_id
+                FROM
+                    stp_estacionamiento.reservas
+                WHERE
                     fecha_hora_reserva BETWEEN '{fecha_str_ayer} 19:00:01' AND '{fecha_str_hoy} 19:00:00';
                 """
              )
@@ -319,11 +319,11 @@ def main():
             logger.info(f"Modo manual termino exitosamente")
 
     elif fechas_historicas:
-        # Calculo para fechas entre 17 oct 2020 y 26 sept 2021
-        fecha_ayer = '2020-10-15'
-        fecha_hoy = '2020-10-16'
+        # Calculo para fechas entre 20 abril 2021 y 26 sept 2021
+        fecha_ayer = '2021-04-19'
+        fecha_hoy = '2021-04-20'
         fecha_fin = '2021-09-26'
-        
+
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"logs/Hist_{fecha_ayer[:-3].replace('-', '_')}_{fecha_fin[:-3].replace('-', '_')}.log")
         file_handler.setLevel(logging.INFO)  # no deja pasar los debug, solo info hasta critical
@@ -336,7 +336,7 @@ def main():
             if fecha_hoy == fecha_fin:
                 logger.info(f"Calculo finalizado")
                 break
-            
+
             logger.info(f"Procesando fecha historica: {fecha_hoy}")
             df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
             df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=True)
