@@ -116,32 +116,34 @@ def query_reservas_diaria(fecha_str_ayer, fecha_str_hoy):
     return df0_
 
 
-def procesar_data(df, df_r, fecha_hoy_):
+def procesar_data(df, df_r, fecha_hoy_, columna_fechahora='fecha_hora_consulta'):
+    #  columna_fechahora = 'fecha_hora_evento'  # cambiar si se quiere ocupar fh evento de copec
+
     # asegurar id sea it, ordenar data antes de hacer analisis de secuencias
     if not df_r.empty:
         df_r['reserva_id'] = df_r['reserva_id'].astype(int)
     else:
         logger.warning("Data reservas vacia, se procesara tabla de todas formas sin esta data")
 
-    df = df.sort_values(by=['pistola_id', 'fecha_hora_evento', 'soc'])
+    df = df.sort_values(by=['pistola_id', columna_fechahora, 'soc'])
 
     # definir secuencias
     df['d_soc'] = df['soc'].shift(-1) - df['soc']
-    df['dT'] = (df['fecha_hora_evento'].shift(-1) - df['fecha_hora_evento']) / pd.Timedelta(minutes=1)
+    df['dT'] = (df[columna_fechahora].shift(-1) - df[columna_fechahora]) / pd.Timedelta(minutes=1)
     df['fin_secuencia'] = (((df['dT'] > 20) | (df['d_soc'] > 10)) | ((df['d_soc'] < 0) | (df['pistola_id'].shift(-1) != df['pistola_id'])))
 
     # asignar id unico a cada secuencia del dia
     df['inicio_secuencia'] = df['fin_secuencia'].shift(1)
     # primer valor de esta columna es NA, se reemplaza por True
     df['inicio_secuencia'].iloc[0:1].fillna(value=True, inplace=True)
-    df['id_secuencia'] = df['inicio_secuencia'].astype(int).cumsum(axis = 0)
+    df['id_secuencia'] = df['inicio_secuencia'].astype(int).cumsum(axis=0)
 
     # asignar tiempo inicial y final a cada secuencia
-    dfg_ini = df[['id_secuencia', 'fecha_hora_evento']].groupby(by='id_secuencia').min()
-    dfg_fin = df[['id_secuencia', 'fecha_hora_evento']].groupby(by='id_secuencia').max()
+    dfg_ini = df[['id_secuencia', columna_fechahora]].groupby(by='id_secuencia').min()
+    dfg_fin = df[['id_secuencia', columna_fechahora]].groupby(by='id_secuencia').max()
 
-    dfg_ini.rename(columns={'fecha_hora_evento': 'tiempo_inicial_carga'}, inplace=True)
-    dfg_fin.rename(columns={'fecha_hora_evento': 'tiempo_final_carga'}, inplace=True)
+    dfg_ini.rename(columns={columna_fechahora: 'tiempo_inicial_carga'}, inplace=True)
+    dfg_fin.rename(columns={columna_fechahora: 'tiempo_final_carga'}, inplace=True)
 
     dfg = dfg_ini.merge(dfg_fin, how='outer', left_index=True, right_index=True)
     df = df.merge(dfg, how='left', left_on='id_secuencia', right_index=True)
@@ -163,6 +165,8 @@ def procesar_data(df, df_r, fecha_hoy_):
         dfx = df.copy()
         df_f = []
         dfx0 = pd.DataFrame()
+        dfx1 = pd.DataFrame()
+        df_res1 = pd.DataFrame()
 
         # rehacer proceso para criterios cada vez menos estrictos
         for i in range(5, 61, 5):
@@ -181,7 +185,8 @@ def procesar_data(df, df_r, fecha_hoy_):
                                 left_by='pistola_id_stp', right_by='pistola_id_stp2',
                                 suffixes=['', '_res'],
                                 tolerance=timedelta(minutes=i, seconds=1),
-                                direction='nearest')
+                                allow_exact_matches=True,
+                                direction='backward')
 
             # revisamos si fecha de reserva no es posterior al fin de la secuencia de carga
             dfx['cruce_ok'] = (dfx['fecha_hora_reserva'] <= dfx['tiempo_final_carga'])
@@ -194,7 +199,7 @@ def procesar_data(df, df_r, fecha_hoy_):
             logger.debug(f"Merge_asof({i:02d} minutos). Secuencias con reserva valida asignada: {s_asign_validas:02d} (Duplicadas {n_res_dup:02d})")
             # en caso de asignacion duplicada quedarse con el mas cercano a tiempo de reserva
             df_reservas_ok['dif_merge'] = abs((df_reservas_ok['fecha_hora_reserva'] - df_reservas_ok['tiempo_inicial_carga']) / pd.Timedelta(minutes=1))
-            df_reservas_ok.sort_values(by=['pistola_id', 'fecha_hora_evento', 'soc', 'dif_merge'], inplace=True)
+            df_reservas_ok.sort_values(by=['pistola_id', columna_fechahora, 'soc', 'dif_merge'], inplace=True)
 
             df_reservas_ok.drop_duplicates(subset='reserva_id', keep='first', inplace=True)
             id_reservas_asignadas = df_reservas_ok['reserva_id'].unique()
@@ -228,16 +233,53 @@ def procesar_data(df, df_r, fecha_hoy_):
         df_f[list(df_r.columns)] = pd.NA
         df_f['cruce_ok'] = pd.NA
 
-    df_f = df_f.sort_values(by=['pistola_id', 'fecha_hora_evento', 'soc'])
-    logger.info(f"Reservas en el dia: {len(df_r.index)}")
-    logger.info(f"Secuencias en el dia: {len(df['id_secuencia'].unique())}")
+    df_f = df_f.sort_values(by=['pistola_id', columna_fechahora, 'soc'])
+
+
+    # --- Printear logs
+
+    hora_limite_turno = f"{fecha_hoy_} 08:00:00"
+    logger.info(f"Total Reservas: {len(df_r.index)}")
+
+    logger.info(f"Total Secuencias: {len(df['id_secuencia'].unique())}")
     if len(df_f['id_secuencia'].unique()) != len(df['id_secuencia'].unique()):
-        logger.warning(f"Secuencias en el dia en data final (check): {len(df_f['id_secuencia'].unique())}")
-    logger.info(f"Secuencias con reserva valida asignada: {len(df_f.loc[~df_f['reserva_id'].isna(), 'id_secuencia'].unique())}")
+        logger.warning(f"Total Secuencias (check): {len(df_f['id_secuencia'].unique())}")
+
+    logger.info(f"Total Secuencias con reserva valida asignada: {len(df_f.loc[~df_f['reserva_id'].isna(), 'id_secuencia'].unique())}")
     if len(df_f.loc[~df_f['reserva_id'].isna(), 'reserva_id'].unique()) != len(df_f.loc[~df_f['reserva_id'].isna(), 'id_secuencia'].unique()):
-        logger.warning(f"Reservas con secuencia valida asignada (check): {len(df_f.loc[~df_f['reserva_id'].isna(), 'reserva_id'].unique())}")
-    logger.info(f"Datos en el dia: {len(df.index)}")
-    logger.info(f"Datos en el dia con reserva valida asignada: {len(df_f.loc[~df_f['reserva_id'].isna()].index)}")
+        logger.warning(f"Total Reservas con secuencia valida asignada (check): {len(df_f.loc[~df_f['reserva_id'].isna(), 'reserva_id'].unique())}")
+
+    df_r_dia = df_r.loc[df_r['fecha_hora_reserva'] >= pd.Timestamp(hora_limite_turno)]
+    df_r_noche = df_r.loc[df_r['fecha_hora_reserva'] < pd.Timestamp(hora_limite_turno)]
+
+    df_dia = df.loc[df[columna_fechahora] >= pd.Timestamp(hora_limite_turno)]
+    df_noche = df.loc[df[columna_fechahora] < pd.Timestamp(hora_limite_turno)]
+
+    df_f_dia = df_f.loc[df_f[columna_fechahora] >= pd.Timestamp(hora_limite_turno)]
+    df_f_noche = df_f.loc[df_f[columna_fechahora] < pd.Timestamp(hora_limite_turno)]
+
+    logger.info(f"Total Reservas (turno dia): {len(df_r_dia.index)}")
+    logger.info(f"Total Secuencias (turno dia): {len(df_dia['id_secuencia'].unique())}")
+    if len(df_f_dia['id_secuencia'].unique()) != len(df_dia['id_secuencia'].unique()):
+        logger.warning(f"Total Secuencias (turno dia) (check): {len(df_f_dia['id_secuencia'].unique())}")
+
+    logger.info(f"Total Secuencias con reserva valida asignada (turno dia): {len(df_f_dia.loc[~df_f_dia['reserva_id'].isna(), 'id_secuencia'].unique())}")
+    if len(df_f_dia.loc[~df_f_dia['reserva_id'].isna(), 'reserva_id'].unique()) != len(df_f_dia.loc[~df_f_dia['reserva_id'].isna(), 'id_secuencia'].unique()):
+        logger.warning(f"Total Reservas con secuencia valida asignada (turno dia) (check): {len(df_f_dia.loc[~df_f_dia['reserva_id'].isna(), 'reserva_id'].unique())}")
+
+    logger.info(f"Total Reservas (turno noche): {len(df_r_noche.index)}")
+    logger.info(f"Total Secuencias (turno noche): {len(df_noche['id_secuencia'].unique())}")
+    if len(df_f_noche['id_secuencia'].unique()) != len(df_noche['id_secuencia'].unique()):
+        logger.warning(f"Total Secuencias (turno noche) (check): {len(df_f_noche['id_secuencia'].unique())}")
+
+    logger.info(f"Total Secuencias con reserva valida asignada (turno noche): {len(df_f_noche.loc[~df_f_noche['reserva_id'].isna(), 'id_secuencia'].unique())}")
+    if len(df_f_noche.loc[~df_f_noche['reserva_id'].isna(), 'reserva_id'].unique()) != len(df_f_noche.loc[~df_f_noche['reserva_id'].isna(), 'id_secuencia'].unique()):
+        logger.warning(f"Total Reservas con secuencia valida asignada (turno noche) (check): {len(df_f_noche.loc[~df_f_noche['reserva_id'].isna(), 'reserva_id'].unique())}")
+
+    logger.info(f"Total Datos en el dia: {len(df.index)}")
+    logger.info(f"Total Datos en el dia con reserva valida asignada: {len(df_f.loc[~df_f['reserva_id'].isna()].index)}")
+
+    # --- Fin Printear logs
 
     n_val_dia = len(df_f.loc[~df_f['reserva_id'].isna(), 'id_secuencia'].unique())
     if n_val_dia != 0:
@@ -276,13 +318,7 @@ def main():
     mantener_log()
 
     fechas_manual = False
-    fechas_historicas = False
-
-    fecha_hoy = datetime.today()
-    fecha_hoy = fecha_hoy - timedelta(days=1)
-    fecha_ayer = fecha_hoy - timedelta(days=1)
-    fecha_hoy = fecha_hoy.strftime('%Y-%m-%d')
-    fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
+    fechas_historicas = True
 
     if fechas_manual:
         # Caso proceso manual: definir variables debug
@@ -321,10 +357,11 @@ def main():
 
     elif fechas_historicas:
         # Calculo para fechas entre 20 abril 2021 y 26 sept 2021
-        fecha_ayer = '2021-09-25'
-        fecha_hoy = '2021-09-26'
-        fecha_fin = '2021-10-27'
+        fecha_ayer = '2021-11-17'
+        fecha_fin = '2021-11-19'
 
+        # Inicializar fecha_hoy
+        fecha_hoy = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"logs/Hist_{fecha_ayer[:-3].replace('-', '_')}_{fecha_fin[:-3].replace('-', '_')}.log")
         file_handler.setLevel(logging.INFO)  # no deja pasar los debug, solo info hasta critical
@@ -346,7 +383,8 @@ def main():
                 logger.warning(f"Data vacia, se procede a siguiente fecha")
             else:
                 df_dia = procesar_data(df_dia, df_reserva, fecha_hoy)
-                cargar_SQL(df_dia)
+                # cargar_SQL(df_dia)
+                logger.info("debug: no cargando a SQL! descomentar linea 352")
 
             # redefinir fechas para siguiente iteracion
             fecha_ayer = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -355,6 +393,13 @@ def main():
         logger.info(f"Modo historico termino exitosamente")
 
     else:
+        # definir fechas hoy y ayer
+        fecha_hoy = datetime.today()
+        fecha_hoy = fecha_hoy - timedelta(days=1)
+        fecha_ayer = fecha_hoy - timedelta(days=1)
+        fecha_hoy = fecha_hoy.strftime('%Y-%m-%d')
+        fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
+
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"/home/apple/Documentos/update_cargadores/logs/{fecha_ayer[:-3].replace('-', '_')}.log")
         file_handler.setLevel(logging.INFO)  # no deja pasar los debug, solo info hasta critical
