@@ -276,9 +276,10 @@ def main():
     mantener_log()
 
     fechas_manual = False
-    fechas_historicas = True
+    fechas_historicas = False
 
     fecha_hoy = datetime.today()
+    fecha_hoy = fecha_hoy - timedelta(days=1)
     fecha_ayer = fecha_hoy - timedelta(days=1)
     fecha_hoy = fecha_hoy.strftime('%Y-%m-%d')
     fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
@@ -320,9 +321,9 @@ def main():
 
     elif fechas_historicas:
         # Calculo para fechas entre 20 abril 2021 y 26 sept 2021
-        fecha_ayer = '2021-05-01'
-        fecha_hoy = '2021-05-02'
-        fecha_fin = '2021-09-26'
+        fecha_ayer = '2021-09-25'
+        fecha_hoy = '2021-09-26'
+        fecha_fin = '2021-10-27'
 
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"logs/Hist_{fecha_ayer[:-3].replace('-', '_')}_{fecha_fin[:-3].replace('-', '_')}.log")
@@ -330,7 +331,7 @@ def main():
         file_handler.setFormatter(file_format)
         logger.addHandler(file_handler)
 
-        logger.info(f"Empezando modo historico entre {fecha_hoy} y {fecha_fin}")    
+        logger.info(f"Empezando modo historico entre {fecha_hoy} y {fecha_fin}")
         # loop por seguridad asumimos menos de un anno de data historica para evitar looplock
         for i in range(365):
             if fecha_hoy == fecha_fin:
@@ -339,7 +340,7 @@ def main():
 
             logger.info(f"Procesando fecha historica: {fecha_hoy}")
             df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
-            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=True)
+            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=False)
             logger.info(f"Query realizada, procesando..")
             if df_dia.empty:
                 logger.warning(f"Data vacia, se procede a siguiente fecha")
@@ -355,7 +356,7 @@ def main():
 
     else:
         # Guardar log en archivo
-        file_handler = logging.FileHandler(f"logs/{fecha_ayer[:-3].replace('-', '_')}.log")
+        file_handler = logging.FileHandler(f"/home/apple/Documentos/update_cargadores/logs/{fecha_ayer[:-3].replace('-', '_')}.log")
         file_handler.setLevel(logging.INFO)  # no deja pasar los debug, solo info hasta critical
         file_handler.setFormatter(file_format)
         logger.addHandler(file_handler)
