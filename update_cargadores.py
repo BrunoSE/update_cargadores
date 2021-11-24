@@ -366,14 +366,15 @@ def cargar_SQL(df_sql):
 
 
 def main():
+    #  tabla filtrada tiene fechas entre 20 abril 2021 y 26 sept 2021, entonces:
     #  usar fecha_evento con tabla filtrada entre 2021-04-20 hasta 2021-09-04
     #  usar fecha_consulta con tabla filtrada entre 2021-09-05 y 2021-09-26
-    #  usar fecha_consulta con tabla hasta ayer
+    #  usar fecha_consulta con tabla normal hasta ayer
     #  dejar corriendo con fecha_consulta diariamente
     mantener_log()
 
     fechas_manual = False
-    fechas_historicas = True
+    fechas_historicas = False
 
     if fechas_manual:
         # Caso proceso manual: definir variables debug
@@ -411,12 +412,11 @@ def main():
             logger.info(f"Modo manual termino exitosamente")
 
     elif fechas_historicas:
-        # Calculo para fechas entre 20 abril 2021 y 26 sept 2021
-        fecha_ayer = '2021-04-20'
-        fecha_fin = '2021-09-04'
+        fecha_hoy = '2021-09-04'  # empieza desde esta fecha
+        fecha_fin = '2021-09-04'  # no hace esta ultima fecha
 
         # Inicializar fecha_hoy
-        fecha_hoy = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+        fecha_ayer = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=-1)).strftime('%Y-%m-%d')
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"logs/Hist_{fecha_ayer[:-3].replace('-', '_')}_{fecha_fin[:-3].replace('-', '_')}.log")
         file_handler.setLevel(logging.INFO)  # no deja pasar los debug, solo info hasta critical
@@ -432,12 +432,12 @@ def main():
 
             logger.info(f"Procesando fecha historica: {fecha_hoy}")
             df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
-            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=True)
+            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=False)
             logger.info(f"Query realizada, procesando..")
             if df_dia.empty:
                 logger.warning(f"Data vacia, se procede a siguiente fecha")
             else:
-                df_dia, metadata = procesar_data(df_dia, df_reserva, fecha_hoy, columna_fechahora='fecha_hora_evento')
+                df_dia, metadata = procesar_data(df_dia, df_reserva, fecha_hoy, columna_fechahora='fecha_hora_consulta')
                 cargar_SQL(df_dia)
                 cargar_SQL_metadata(metadata)
 
@@ -445,12 +445,11 @@ def main():
             fecha_ayer = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
             fecha_hoy = (datetime.strptime(fecha_hoy, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
 
-        logger.info(f"Modo historico termino exitosamente")
+        logger.info(f"Modo historico con fecha {fecha_hoy} termino exitosamente")
 
     else:
         # definir fechas hoy y ayer
         fecha_hoy = datetime.today()
-        fecha_hoy = fecha_hoy - timedelta(days=1)
         fecha_ayer = fecha_hoy - timedelta(days=1)
         fecha_hoy = fecha_hoy.strftime('%Y-%m-%d')
         fecha_ayer = fecha_ayer.strftime('%Y-%m-%d')
@@ -475,7 +474,7 @@ def main():
             cargar_SQL(df_dia)
             cargar_SQL_metadata(metadata)
 
-        logger.info(f"Modo automatico termino exitosamente")
+        logger.info(f"Modo automatico con fecha {fecha_hoy} termino exitosamente")
 
 
 if __name__ == '__main__':
