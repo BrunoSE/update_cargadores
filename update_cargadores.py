@@ -307,7 +307,8 @@ def procesar_data(df, df_r, fecha_hoy_, columna_fechahora='fecha_hora_consulta')
     metadata.append(len(df_f.loc[~df_f['reserva_id'].isna()].index))
 
     metadata.append(n_val_dia)
-    return df_f.loc[df_f['cruce_ok']], metadata
+    df_f = df_f.loc[df_f['cruce_ok'] == True]
+    return df_f, metadata
 
 
 def cargar_SQL_metadata(metadata):
