@@ -288,7 +288,57 @@ def procesar_data(df, df_r, fecha_hoy_, columna_fechahora='fecha_hora_consulta')
     # dejar secuencias con id unico, asume no mas de 9999 secuencias por dia
     df_f['id_secuencia'] = df_f['id_secuencia'] + 10000 * int(fecha_hoy_[2:].replace('-', ''))
     df_f.set_index('id', drop=True, append=False, inplace=True)
-    return df_f
+
+    metadata = []
+    metadata.append(fecha_hoy_)
+    metadata.append(len(df_r.index))
+    metadata.append(len(df['id_secuencia'].unique()))
+    metadata.append(len(df_f.loc[~df_f['reserva_id'].isna(), 'id_secuencia'].unique()))
+
+    metadata.append(len(df_r_dia.index))
+    metadata.append(len(df_dia['id_secuencia'].unique()))
+    metadata.append(len(df_f_dia.loc[~df_f_dia['reserva_id'].isna(), 'id_secuencia'].unique()))
+
+    metadata.append(len(df_r_noche.index))
+    metadata.append(len(df_noche['id_secuencia'].unique()))
+    metadata.append(len(df_f_noche.loc[~df_f_noche['reserva_id'].isna(), 'id_secuencia'].unique()))
+
+    metadata.append(len(df.index))
+    metadata.append(len(df_f.loc[~df_f['reserva_id'].isna()].index))
+
+    metadata.append(n_val_dia)
+    return df_f.loc[df_f['cruce_ok']], metadata
+
+
+def cargar_SQL_metadata(metadata):
+    columnas_metadata = ['fecha', 'Total_Reservas', 'Total_Secuencias', 'Total_Secuencias_Asignadas',
+                         'Total_Reservas_Dia', 'Total_Secuencias_Dia', 'Total_Secuencias_Asignadas_Dia',
+                         'Total_Reservas_Noche', 'Total_Secuencias_Noche', 'Total_Secuencias_Asignadas_Noche', 
+                         'Total_Datos', 'Total_Datos_Asignados', 'Datos_Promedio_Secuencia']
+
+    if not metadata:
+        logger.warning(f"Metadata vacia, no se carga en SQL")
+        return None
+
+    df_metadata = pd.DataFrame([metadata], columns=columnas_metadata)
+
+    nombre_tabla_sql = 'metadata_cargadores_procesado'
+
+    logger.info(f"Insertando data en tabla SQL: {nombre_tabla_sql}")
+    # Credentials to database connection
+    hostname = "192.168.11.150"
+    dbname = "stp_estacionamiento"
+    uname = "brunom"
+    pwd = "Manzana"
+
+    # Create SQLAlchemy engine to connect to MySQL Database
+    engine = create_engine("mysql+pymysql://{user}:{pw}@{host}/{db}"
+                        .format(host=hostname, db=dbname, user=uname, pw=pwd))
+
+    # Convert dataframe to sql table                                   
+    df_metadata.to_sql(nombre_tabla_sql, engine, index=False, if_exists='append')
+    logger.info(f"Data agregada exitosamente a tabla SQL: {nombre_tabla_sql}")
+    return None
 
 
 def cargar_SQL(df_sql):
@@ -315,6 +365,10 @@ def cargar_SQL(df_sql):
 
 
 def main():
+    #  usar fecha_evento con tabla filtrada entre 2021-04-20 hasta 2021-09-04
+    #  usar fecha_consulta con tabla filtrada entre 2021-09-05 y 2021-09-26
+    #  usar fecha_consulta con tabla hasta ayer
+    #  dejar corriendo con fecha_consulta diariamente
     mantener_log()
 
     fechas_manual = False
@@ -350,15 +404,15 @@ def main():
         if df_dia.empty:
             logger.warning(f"Data vacia, proceso terminado anticipadamente")
         else:
-            df_dia = procesar_data(df_dia, df_reserva, fecha_hoy)
+            df_dia, metadata = procesar_data(df_dia, df_reserva, fecha_hoy)
             # cargar_SQL(df_dia)
             # df_dia.to_parquet('df.parquet', compression='gzip')
             logger.info(f"Modo manual termino exitosamente")
 
     elif fechas_historicas:
         # Calculo para fechas entre 20 abril 2021 y 26 sept 2021
-        fecha_ayer = '2021-11-17'
-        fecha_fin = '2021-11-19'
+        fecha_ayer = '2021-04-20'
+        fecha_fin = '2021-09-04'
 
         # Inicializar fecha_hoy
         fecha_hoy = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -377,14 +431,14 @@ def main():
 
             logger.info(f"Procesando fecha historica: {fecha_hoy}")
             df_reserva = query_reservas_diaria(fecha_ayer, fecha_hoy)
-            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=False)
+            df_dia = query_data_diaria(fecha_ayer, fecha_hoy, tabla_filtrada=True)
             logger.info(f"Query realizada, procesando..")
             if df_dia.empty:
                 logger.warning(f"Data vacia, se procede a siguiente fecha")
             else:
-                df_dia = procesar_data(df_dia, df_reserva, fecha_hoy)
-                # cargar_SQL(df_dia)
-                logger.info("debug: no cargando a SQL! descomentar linea 352")
+                df_dia, metadata = procesar_data(df_dia, df_reserva, fecha_hoy, columna_fechahora='fecha_hora_evento')
+                cargar_SQL(df_dia)
+                cargar_SQL_metadata(metadata)
 
             # redefinir fechas para siguiente iteracion
             fecha_ayer = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -416,8 +470,9 @@ def main():
         if df_dia.empty:
             logger.warning(f"Data vacia, proceso finalizado anticipadamente")
         else:
-            df_dia = procesar_data(df_dia, df_reserva, fecha_hoy)
+            df_dia, metadata = procesar_data(df_dia, df_reserva, fecha_hoy)
             cargar_SQL(df_dia)
+            cargar_SQL_metadata(metadata)
 
         logger.info(f"Modo automatico termino exitosamente")
 
