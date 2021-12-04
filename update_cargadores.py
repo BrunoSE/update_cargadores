@@ -416,7 +416,7 @@ def main():
         fecha_fin = '2021-09-04'  # no hace esta ultima fecha
 
         # Inicializar fecha_hoy
-        fecha_ayer = (datetime.strptime(fecha_ayer, '%Y-%m-%d') + timedelta(days=-1)).strftime('%Y-%m-%d')
+        fecha_ayer = (datetime.strptime(fecha_hoy, '%Y-%m-%d') + timedelta(days=-1)).strftime('%Y-%m-%d')
         # Guardar log en archivo
         file_handler = logging.FileHandler(f"logs/Hist_{fecha_ayer[:-3].replace('-', '_')}_{fecha_fin[:-3].replace('-', '_')}.log")
         file_handler.setLevel(logging.INFO)  # no deja pasar los debug, solo info hasta critical
